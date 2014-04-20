@@ -1,0 +1,16 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #222234;
+}
+
+#map {
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:100%;
+}
+
+.leaflet-container {
+    background: #2c2c44;
+}
