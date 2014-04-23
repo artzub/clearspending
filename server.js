@@ -7,6 +7,307 @@ var d3 = require("d3")
     , sys = require("sys")
     ;
 
+getAdvDataByContract();
+
+function getAdvDataByContract() {
+    var csaw = require("./js/clearspending.js")
+        ;
+    csaw.ApiKey = 'fWmsuy7Nf7S42Z3EsKCM9CCj5fEbkRzT';
+
+    var mongoose = require('mongoose');
+
+    var opened
+        , db
+        ;
+
+    function connect(err) {
+        if (err) {
+            console.error(sys.inspect(err));
+            return;
+        }
+
+        if(opened) {
+            opened = false;
+            console.log('disconnecting...!');
+            mongoose.connection.close(connect);
+            return;
+        }
+
+        console.log('disconnect successfully!');
+
+        mongoose.connect('mongodb://localhost/clearspending');
+        db = mongoose.connection;
+
+        db.on('error', function (err) {
+            console.error('connection error:' + err);
+        });
+
+        db.once('open', function () {
+            console.log('connection successfully!');
+
+            opened = true;
+            setTimeout(processDb, 300);
+        });
+    }
+    connect();
+
+    var collection
+        , cursor
+        , all
+        , fixed = 0
+        , rq = csaw.RequestContractsGet()
+        ;
+
+    function log(fixed, id, err) {
+        console.log([
+            ' [',
+            fixed,
+            '/',
+            all,
+            '] ',
+            id,
+            ' | ',
+                typeof err !== 'undefined' ? err : ''
+        ].join(''));
+    }
+
+    function processDb() {
+        collection = db.db.collection('contract');
+
+        collection.count({protocolDate : null, publishDate : null}, function(err, count) {
+            if (err)
+                throw err;
+            all = count;
+            cursor = collection.find({protocolDate : null, publishDate : null});
+            log(fixed, 'start');
+            run();
+        });
+    }
+
+    function run() {
+        var l = 3;
+        while(l--)
+            setTimeout(function() {
+                cursor.next(parse);
+            }, 100);
+    }
+
+    function parse(err, item) {
+        if (err) {
+            log(fixed, '', sys.inspect(err));
+            run();
+            return;
+        }
+
+        if (!item) {
+            return;
+        }
+
+        if (item.protocolDate || item.publishDate) {
+            log(fixed++, item._id, 'skip');
+            run();
+        }
+        else {
+            runRequest(item);
+        }
+    }
+
+    function runRequest(item) {
+        rq.regNum = item.regNum;
+        rq.get(funByItem(item));
+    }
+
+    function funByItem(item) {
+        return function (err, req) {
+            if (err) {
+                log(fixed, item._id, sys.inspect(err));
+                run();
+            }
+            else {
+                var data;
+                if (req.responseText) {
+                    try {
+                        data = JSON.parse(req.responseText);
+                    }
+                    catch (e) {
+                        data = {message: req.responseText};
+                    }
+
+                    if (data.contracts && data.contracts.data && data.contracts.data.length) {
+                        item.protocolDate = data.contracts.data[0].protocolDate;
+                        item.publishDate = data.contracts.data[0].publishDate;
+
+                        fixed++;
+                        collection.save(item, handleSave(item));
+                    }
+                    else {
+                        log(fixed, item._id, sys.inspect(data));
+                        run();
+                    }
+                }
+                else
+                    run();
+            }
+        }
+    }
+
+    function handleSave(item) {
+        return function(err, res) {
+            log(fixed, item._id, err ? sys.inspect(err) : item.protocolDate || item.publishDate ? '+' : '-');
+            run();
+        }
+    }
+}
+
+function getAdvDataByCustomers() {
+    var csaw = require("./js/clearspending.js")
+        ;
+    csaw.ApiKey = 'fWmsuy7Nf7S42Z3EsKCM9CCj5fEbkRzT';
+
+    var mongoose = require('mongoose');
+
+    var opened
+        , db
+        ;
+
+    function connect(err) {
+        if (err) {
+            console.error(sys.inspect(err));
+            return;
+        }
+
+        if(opened) {
+            opened = false;
+            console.log('disconnecting...!');
+            mongoose.connection.close(connect);
+            return;
+        }
+
+        console.log('disconnect successfully!');
+
+        mongoose.connect('mongodb://localhost/clearspending');
+        db = mongoose.connection;
+
+        db.on('error', function (err) {
+            console.error('connection error:' + err);
+        });
+
+        db.once('open', function () {
+            console.log('connection successfully!');
+
+            opened = true;
+            setTimeout(processDb, 300);
+        });
+    }
+    connect();
+
+    var customers
+        , cursor
+        , all
+        , fixed = 0
+        , rq = csaw.RequestCustomersGet()
+        ;
+
+    function log(fixed, id, err) {
+        console.log([
+            ' [',
+            fixed,
+            '/',
+            all,
+            '] ',
+            id,
+            ' | ',
+                typeof err !== 'undefined' ? err : ''
+        ].join(''));
+    }
+
+    function processDb() {
+        customers = db.db.collection('customer');
+
+        customers.count({factualAddress : null}, function(err, count) {
+            if (err)
+                throw err;
+            all = count;
+            cursor = customers.find({factualAddress : null});
+            log(fixed, 'start');
+            run();
+        });
+    }
+
+    function run() {
+        var l = 3;
+        while(l--)
+            setTimeout(function() {
+                cursor.next(parse);
+            }, 100);
+    }
+
+    function parse(err, item) {
+        if (err) {
+            log(fixed, '', sys.inspect(err));
+            run();
+            return;
+        }
+
+        if (!item) {
+            return;
+        }
+
+        if (item.factualAddress) {
+            log(fixed++, item._id, 'skip');
+            run();
+        }
+        else {
+            runRequest(item);
+        }
+    }
+
+    function runRequest(item) {
+        rq.spzRegNum = item.regNum;
+        rq.get(funByItem(item));
+    }
+
+    function funByItem(item) {
+        return function (err, req) {
+            if (err) {
+                log(fixed, item._id, sys.inspect(err));
+                //run();
+            }
+            else {
+                var data;
+                if (req.responseText) {
+                    try {
+                        data = JSON.parse(req.responseText);
+                    }
+                    catch (e) {
+                        data = {message: req.responseText};
+                    }
+
+                    if (data.customers && data.customers.data && data.customers.data.length) {
+                        item.factualAddress = data.customers.data[0].factualAddress;
+
+                        fixed++;
+                        customers.save(item, handleSave(item));
+                    }
+                    else {
+                        log(fixed, item._id, sys.inspect(data));
+                        run();
+                    }
+                }
+                else
+                    run();
+            }
+        }
+    }
+
+    function handleSave(item) {
+        return function(err, res) {
+            log(fixed, item._id, err ? sys.inspect(err) : item.factualAddress ? '+' : '-');
+            run();
+        }
+    }
+}
+
 function loadData() {
     var csaw = require("./js/clearspending.js")
         ;
@@ -270,8 +571,8 @@ function loadDataToDb() {
     var collection;
     var hasContract = {}
         , contracts = []
-        , dir = 'E:/Temp/grabberRes/'
-        , dirMove = 'E:/Temp/grabber/'
+        , dir = 'E:/Temp/grabber/'
+        , dirMove = 'E:/Temp/grabberRes/'
         , allFiles
         ;
 
@@ -306,13 +607,20 @@ function loadDataToDb() {
         }
         else {
             try {
-                var cs = require(dir + file);
+                var rawdata = fs.readFileSync(dir + file);
+
+                var cs = JSON.parse(rawdata); //require(dir + file);
                 if (!cs)
                     throw new Error('not load data' + file);
 
                 //db.db.collection('test_contracts')
                 collection = collection || db.db.collection('test_contracts');
-                cs.forEach(insertIntoCollection(collection));
+                if(cs[0] instanceof Array)
+                    cs.forEach(function(d){
+                        d.forEach(insertIntoCollection(collection));
+                    });
+                else
+                    cs.forEach(insertIntoCollection(collection));
                 log('completed file ' + file);
                 fsrenameSync(dir + allFiles[cur - 1], dirMove + 'ok_' + allFiles[cur - 1]);
                 setTimeout(inFile, 100);
@@ -404,4 +712,233 @@ function loadDataToDb() {
         }
     }
 }
-loadDataToDb();
+
+function reformDb() {
+    var mongoose = require('mongoose');
+
+    var opened
+        , db
+        ;
+
+    function connect(err) {
+        if (err) {
+            console.error(sys.inspect(err));
+            return;
+        }
+
+        if(opened) {
+            opened = false;
+            console.log('disconnecting...!');
+            mongoose.connection.close(connect);
+            return;
+        }
+
+        console.log('disconnect successfully!');
+
+        mongoose.connect('mongodb://localhost/clearspending');
+        db = mongoose.connection;
+
+        db.on('error', function (err) {
+            console.error('connection error:' + sys.inspect(err));
+        });
+
+        db.once('open', function () {
+            console.log('connection successfully!');
+
+            opened = true;
+            setTimeout(processDb, 300);
+        });
+    }
+    connect();
+
+    var badcolcount = 0
+        , badcol
+        , contracts
+        , customers
+        , suppliers
+        , cursor
+        , curpos = 0
+        , cusc = 0
+        , supc = 0
+        , contrc = 0
+        ;
+
+    function log() {
+        console.log([
+            '[ ',
+            curpos,
+            '/',
+            badcolcount,
+            '] cont: ',
+            contrc,
+            ' | cust: ',
+            cusc,
+            ' | supp: ',
+            supc
+        ].join(''));
+    }
+
+    function processDb() {
+        badcol = db.db.collection('test_contracts');
+        contracts = db.db.collection('contract');
+        customers = db.db.collection('customer');
+        suppliers = db.db.collection('supplier');
+
+        badcol.count(function(err, count) {
+            if (err)
+                throw err;
+            badcolcount = count;
+            contracts && contracts.count(function(err, ccs) {
+                !err && (contrc = ccs);
+                !err && customers && customers.count(function(err, cc) {
+                    !err && (cusc = cc);
+                    !err && suppliers && suppliers.count(function(err, cs) {
+                        !err && (supc = cs);
+
+                        cursor = badcol.find();
+                        setTimeout(run, 1);
+                    });
+                });
+            });
+        });
+    }
+
+    function run() {
+        var i = 10;
+        while(i--)
+            setTimeout(function() {
+                cursor.next(parse);
+            }, 100);
+    }
+
+    function parse(err, item) {
+        log();
+        if (err)
+            throw err;
+        if (!item)
+            return;
+
+        if (item.visited || !item.customer || !item.products || !item.suppliers || !item.products.product) {
+            handleContract({});
+            return;
+        }
+
+        var t = item.customer;
+        t._id = t.regNum;
+
+        customers.insert(t, handleCustomer(t, item));
+    }
+
+    function handleCustomer(cust, next) {
+        return function(err, res) {
+            if (!err)
+                cusc++;
+
+            var t = {};
+            var fields = {
+                kpp : 1,
+                factualAddress : 1,
+                contactInfo: {
+                    middleName : 1,
+                    lastName : 1,
+                    firstName : 1
+                },
+                organizationName : 1,
+                organizationForm : 1,
+                country: {
+                    countryCode : 1,
+                    countryFullName : 1
+                },
+                legalForm: {
+                    code : 1,
+                    singularName : 1
+                },
+                inn : 1,
+                participantType : 1,
+                contactPhone : 1,
+                postAddress : 1
+            };
+
+            ext(fields, next.suppliers.supplier, t);
+
+            t._id = t.inn + t.kpp;
+
+            suppliers.insert(t, handleSupplier(cust, t, next));
+        }
+    }
+
+    function ext(fields, from, to) {
+        for (var key in fields) {
+            if (!fields.hasOwnProperty(key)
+                || !from.hasOwnProperty(key))
+                continue;
+
+            if (fields[key] instanceof Object) {
+                to[key] = {};
+                for (var subKey in fields[key]) {
+                    if (fields[key].hasOwnProperty(subKey)
+                        && from[key].hasOwnProperty(subKey))
+                        to[key][subKey] = from[key][subKey];
+                }
+            }
+            else {
+                to[key] = from[key];
+            }
+        }
+    }
+
+    function handleSupplier(cust, supp, next) {
+        return function(err, res) {
+            if (!err)
+                supc++;
+
+            var p = {};
+            //;
+            var fields = {
+                name : 1,
+                price : 1,
+                OKDP: {
+                    code : 1,
+                    name : 1
+                },
+                sid : 1,
+                sum: 1,
+                OKEI: {
+                    code : 1,
+                    name : 1
+                },
+                quantity : 1
+            };
+
+            ext(fields, next.products.product, p);
+
+            fields = {
+                price : 1,
+                _id : 1,
+                signDate : 1,
+                regNum : 1
+            };
+
+            var t = {};
+
+            ext(fields, next, t);
+
+            t.customer_id = cust._id;
+            t.supplier_id = supp._id;
+            t.product = p;
+            t.date = new Date(t.signDate);
+
+            next.visited = true;
+            badcol.save(next, function() {});
+
+            contracts.insert(t, handleContract);
+        }
+    }
+
+    function handleContract(err) {
+        if (!err)
+            contrc++;
+        curpos++;
+        setTimeout(run, 1);
+    }
+}

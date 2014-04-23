@@ -14,3 +14,50 @@ body {
 .leaflet-container {
     background: #2c2c44;
 }
+
+.leaflet-control-actionconsole {
+    border: 1px solid rgba(0,0,0,0.4);
+
+    max-width: 28px;
+    max-height: 27px;
+    overflow: hidden;
+
+    -webkit-transition: max-width .2s ease-in-out .1s;
+    -moz-transition: max-width .2s ease-in-out .1s;
+    -o-transition: max-width .2s ease-in-out .1s;
+    transition: max-width .2s ease-in-out .1s;
+}
+
+.leaflet-control-actionconsole:hover,
+.leaflet-control-actionconsole.open {
+    max-width: 108px;
+
+    -webkit-transition: max-width .2s ease-in-out .1s;
+    -moz-transition: max-width .2s ease-in-out .1s;
+    -o-transition: max-width .2s ease-in-out .1s;
+    transition: max-width .2s ease-in-out .1s;
+}
+
+.leaflet-control-actionconsole a {
+    display: inline-block;
+    border-right: 1px solid rgba(0,0,0,.1);
+    background-color: #fff;
+
+    padding-top: 5px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.leaflet-control-actionconsole a {
+    border-right: 1px solid rgba(0, 0, 0, .1);
+}
+
+.leaflet-control-actionconsole a:last-child {
+    border-right: 0;
+}
+
+.leaflet-control-actionconsole a:hover {
+    color: #2d85c6;
+}
+
+.oi[data-glyph=media-repeat]:before { content:'\e088'; }
