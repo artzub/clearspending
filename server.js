@@ -7,7 +7,8 @@ var d3 = require("d3")
     , sys = require("sys")
     ;
 
-getAdvDataByContract();
+
+//getAdvDataByContract();
 
 function getAdvDataByContract() {
     var csaw = require("./js/clearspending.js")
@@ -224,11 +225,11 @@ function getAdvDataByCustomers() {
     function processDb() {
         customers = db.db.collection('customer');
 
-        customers.count({factualAddress : null}, function(err, count) {
+        customers.count({fixed : null}, function(err, count) {
             if (err)
                 throw err;
             all = count;
-            cursor = customers.find({factualAddress : null});
+            cursor = customers.find({fixed : null});
             log(fixed, 'start');
             run();
         });
@@ -253,7 +254,7 @@ function getAdvDataByCustomers() {
             return;
         }
 
-        if (item.factualAddress) {
+        if (item.fixed) {
             log(fixed++, item._id, 'skip');
             run();
         }
@@ -271,7 +272,7 @@ function getAdvDataByCustomers() {
         return function (err, req) {
             if (err) {
                 log(fixed, item._id, sys.inspect(err));
-                //run();
+                run();
             }
             else {
                 var data;
@@ -284,7 +285,33 @@ function getAdvDataByCustomers() {
                     }
 
                     if (data.customers && data.customers.data && data.customers.data.length) {
-                        item.factualAddress = data.customers.data[0].factualAddress;
+                        //item.factualAddress = data.customers.data[0].factualAddress;
+
+                        var s = data.customers.data[0].subordinationType;
+                        if (s) {
+                            item.subordinationType = {};
+                            item.subordinationType.id = s.id;
+                            item.subordinationType.description = s.description;
+                        }
+
+                        s = data.customers.data[0].organizationType;
+                        if (s) {
+                            item.organizationType = {};
+                            item.organizationType.id = s.id;
+                            item.organizationType.name = s.name;
+                        }
+
+                        s = data.customers.data[0].okopf;
+                        if (s) {
+                            item.okopf = {};
+                            item.okopf.code = s.code;
+                            item.okopf.name = s.name;
+                        }
+
+                        item.shortName = data.customers.data[0].shortName;
+                        item.organizationRole = data.customers.data[0].organizationRole;
+                        item.regionCode = data.customers.data[0].regionCode;
+                        item.fixed = true;
 
                         fixed++;
                         customers.save(item, handleSave(item));
@@ -302,11 +329,167 @@ function getAdvDataByCustomers() {
 
     function handleSave(item) {
         return function(err, res) {
-            log(fixed, item._id, err ? sys.inspect(err) : item.factualAddress ? '+' : '-');
+            log(fixed, item._id, err ? sys.inspect(err) : item.fixed ? '+' : '-');
             run();
         }
     }
 }
+
+!function getAdvDataBySuppliers() {
+    var csaw = require("./js/clearspending.js")
+        ;
+    csaw.ApiKey = 'fWmsuy7Nf7S42Z3EsKCM9CCj5fEbkRzT';
+
+    var mongoose = require('mongoose');
+
+    var opened
+        , db
+        ;
+
+    function connect(err) {
+        if (err) {
+            console.error(sys.inspect(err));
+            return;
+        }
+
+        if(opened) {
+            opened = false;
+            console.log('disconnecting...!');
+            mongoose.connection.close(connect);
+            return;
+        }
+
+        console.log('disconnect successfully!');
+
+        mongoose.connect('mongodb://localhost/clearspending');
+        db = mongoose.connection;
+
+        db.on('error', function (err) {
+            console.error('connection error:' + err);
+        });
+
+        db.once('open', function () {
+            console.log('connection successfully!');
+
+            opened = true;
+            setTimeout(processDb, 300);
+        });
+    }
+    connect();
+
+    var collection
+        , cursor
+        , all
+        , fixed = 0
+        , rq = csaw.RequestSuppliersGet()
+        ;
+
+    function log(fixed, id, err) {
+        console.log([
+            ' [',
+            fixed,
+            '/',
+            all,
+            '] ',
+            id,
+            ' | ',
+                typeof err !== 'undefined' ? err : ''
+        ].join(''));
+    }
+
+    function processDb() {
+        collection = db.db.collection('supplier');
+
+        collection.count({fixed : null}, function(err, count) {
+            if (err)
+                throw err;
+            all = count;
+            cursor = collection.find({fixed : null});
+            log(fixed, 'start');
+            run();
+        });
+    }
+
+    function run() {
+        var l = 3;
+        while(l--)
+            setTimeout(function() {
+                cursor.next(parse);
+            }, 100);
+    }
+
+    function parse(err, item) {
+        if (err) {
+            log(fixed, '', sys.inspect(err));
+            run();
+            return;
+        }
+
+        if (!item) {
+            return;
+        }
+
+        if (item.fixed) {
+            log(fixed++, item._id, 'skip');
+            run();
+        }
+        else {
+            runRequest(item);
+        }
+    }
+
+    function runRequest(item) {
+        rq.inn = item.inn;
+        rq.kpp = item.kpp;
+        rq.get(funByItem(item));
+    }
+
+    function funByItem(item) {
+        return function (err, req) {
+            if (err) {
+                log(fixed, item._id, sys.inspect(err));
+                run();
+            }
+            else {
+                var data;
+                if (req.responseText) {
+                    try {
+                        data = JSON.parse(req.responseText);
+                    }
+                    catch (e) {
+                        data = {message: req.responseText};
+                    }
+
+                    if (data.suppliers && data.suppliers.data && data.suppliers.data.length) {
+                        //item.factualAddress = data.customers.data[0].factualAddress;
+
+                        item.organizationName = data.suppliers.data[0].organizationName;
+                        item.organizationForm = data.suppliers.data[0].organizationForm;
+                        item.regionCode = data.suppliers.data[0].regionCode;
+                        item.fixed = true;
+
+                        fixed++;
+                        collection.save(item, handleSave(item));
+                    }
+                    else {
+                        log(fixed, item._id, sys.inspect(data));
+                        run();
+                    }
+                }
+                else
+                    run();
+            }
+        }
+    }
+
+    function handleSave(item) {
+        return function(err, res) {
+            log(fixed, item._id, err ? sys.inspect(err) : item.fixed ? '+' : '-');
+            run();
+        }
+    }
+}();
+
 
 function loadData() {
     var csaw = require("./js/clearspending.js")
