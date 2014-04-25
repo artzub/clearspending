@@ -1,6 +1,7 @@
 /**
  * Created by artzub on 21.04.2014.
  */
+
 L.BlackHoleLayer = L.Class.extend({
     initialize: function () {
         this.onHide = null;
@@ -23,14 +24,16 @@ L.BlackHoleLayer = L.Class.extend({
         this._el = d3.select(map.getPanes().overlayPane).append('div');
         this._bh = d3.blackHole(this._el);
 
-        this._bh.setting.skipEmptyDate =
+        this._bh.setting.skipEmptyDate = true;
             this._bh.setting.createNearParent = true;
         this._bh.setting.zoomAndDrag = false;
         this._bh.setting.drawParent = true;
         this._bh.setting.drawParentImg = false;
         this._bh.setting.drawParentLabel = false;
         this._bh.setting.padding = 1;
-        this._bh.setting.childLife = 0;
+        this._bh.setting.childLife =
+            this._bh.setting.parentLife = 0;
+        this._bh.setting.increaseChildWhenCreated = true;
         this._bh.setting.blendingLighter = false;
         this._bh.setting.drawAsPlasma = false;
         this._bh.setting.drawTrack = true;

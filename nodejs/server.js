@@ -7,11 +7,30 @@ var d3 = require("d3")
     , sys = require("sys")
     ;
 
+function ext(fields, from, to) {
+    for (var key in fields) {
+        if (!fields.hasOwnProperty(key)
+            || !from.hasOwnProperty(key))
+            continue;
 
-//getAdvDataByContract();
+        if (fields[key] instanceof Object) {
+            to[key] = {};
+            for (var subKey in fields[key]) {
+                if (fields[key].hasOwnProperty(subKey)
+                    && from[key].hasOwnProperty(subKey))
+                    to[key][subKey] = from[key][subKey];
+            }
+        }
+        else {
+            to[key] = from[key];
+        }
+    }
+}
+
+getAdvDataByContract();
 
 function getAdvDataByContract() {
-    var csaw = require("./js/clearspending.js")
+    var csaw = require("./../js/clearspending.js")
         ;
     csaw.ApiKey = 'fWmsuy7Nf7S42Z3EsKCM9CCj5fEbkRzT';
 
@@ -75,11 +94,11 @@ function getAdvDataByContract() {
     function processDb() {
         collection = db.db.collection('contract');
 
-        collection.count({protocolDate : null, publishDate : null}, function(err, count) {
+        collection.count({fixed : null}, function(err, count) {
             if (err)
                 throw err;
             all = count;
-            cursor = collection.find({protocolDate : null, publishDate : null});
+            cursor = collection.find({fixed : null});
             log(fixed, 'start');
             run();
         });
@@ -104,7 +123,7 @@ function getAdvDataByContract() {
             return;
         }
 
-        if (item.protocolDate || item.publishDate) {
+        if (item.fixed) {
             log(fixed++, item._id, 'skip');
             run();
         }
@@ -138,6 +157,69 @@ function getAdvDataByContract() {
                         item.protocolDate = data.contracts.data[0].protocolDate;
                         item.publishDate = data.contracts.data[0].publishDate;
 
+                        var fields = {
+                            name : 1,
+                            price : 1,
+                            OKDP: {
+                                code : 1,
+                                name : 1
+                            },
+                            sid : 1,
+                            sum: 1,
+                            OKEI: {
+                                code : 1,
+                                name : 1
+                            },
+                            quantity : 1
+                        };
+
+                        var obj;
+                        if (data.contracts.data[0].products.product instanceof Array) {
+                            item.product = [];
+                            data.contracts.data[0].products.product.forEach(function (d) {
+                                obj = {};
+                                ext(fields, d, obj);
+                                item.product.push(obj);
+                            });
+                        }
+                        else {
+                            obj = {};
+                            ext(fields, data.contracts.data[0].products.product, obj);
+                            item.product = [obj];
+                        }
+
+                        if (data.contracts.data[0].foundation
+                            && data.contracts.data[0].foundation.order) {
+                            item.placing = data.contracts.data[0].foundation.order.placing;
+                        }
+
+                        fields = {
+                            budgetLevel : {
+                                code : 1,
+                                name : 1
+                            },
+                            budget : {
+                                code : 1,
+                                name : 1
+                            },
+                            budgetary : {
+                                comment : 1,
+                                KBK : 1,
+                                price : 1,
+                                month : 1,
+                                year : 1
+                            },
+                            financeSource : 1
+                        };
+
+                        if (data.contracts.data[0].finances) {
+                            obj = {};
+                            ext(fields, data.contracts.data[0].finances, obj);
+                            item.finances = obj;
+                        }
+
+                        item.fixed = true;
+
                         fixed++;
                         collection.save(item, handleSave(item));
                     }
@@ -154,14 +236,14 @@ function getAdvDataByContract() {
 
     function handleSave(item) {
         return function(err, res) {
-            log(fixed, item._id, err ? sys.inspect(err) : item.protocolDate || item.publishDate ? '+' : '-');
+            log(fixed, item._id, err ? sys.inspect(err) : item.fixed ? '+' : '-');
             run();
         }
     }
 }
 
 function getAdvDataByCustomers() {
-    var csaw = require("./js/clearspending.js")
+    var csaw = require("./../js/clearspending.js")
         ;
     csaw.ApiKey = 'fWmsuy7Nf7S42Z3EsKCM9CCj5fEbkRzT';
 
@@ -335,8 +417,8 @@ function getAdvDataByCustomers() {
     }
 }
 
-!function getAdvDataBySuppliers() {
-    var csaw = require("./js/clearspending.js")
+function getAdvDataBySuppliers() {
+    var csaw = require("./../js/clearspending.js")
         ;
     csaw.ApiKey = 'fWmsuy7Nf7S42Z3EsKCM9CCj5fEbkRzT';
 
@@ -400,11 +482,11 @@ function getAdvDataByCustomers() {
     function processDb() {
         collection = db.db.collection('supplier');
 
-        collection.count({fixed : null}, function(err, count) {
+        collection.count({fixed : null, not_found : null}, function(err, count) {
             if (err)
                 throw err;
             all = count;
-            cursor = collection.find({fixed : null});
+            cursor = collection.find({fixed : null, not_found : null});
             log(fixed, 'start');
             run();
         });
@@ -429,7 +511,7 @@ function getAdvDataByCustomers() {
             return;
         }
 
-        if (item.fixed) {
+        if (item.fixed /*|| /.*undefined$/.test(item._id)*/) {
             log(fixed++, item._id, 'skip');
             run();
         }
@@ -440,7 +522,7 @@ function getAdvDataByCustomers() {
 
     function runRequest(item) {
         rq.inn = item.inn;
-        rq.kpp = item.kpp;
+        rq.kpp = item.kpp || "";
         rq.get(funByItem(item));
     }
 
@@ -469,12 +551,13 @@ function getAdvDataByCustomers() {
                         item.fixed = true;
 
                         fixed++;
-                        collection.save(item, handleSave(item));
                     }
                     else {
                         log(fixed, item._id, sys.inspect(data));
-                        run();
+                        item.not_found = true;
+                        //run();
                     }
+                    collection.save(item, handleSave(item));
                 }
                 else
                     run();
@@ -488,11 +571,11 @@ function getAdvDataByCustomers() {
             run();
         }
     }
-}();
+}
 
 
 function loadData() {
-    var csaw = require("./js/clearspending.js")
+    var csaw = require("./../js/clearspending.js")
         ;
 
     var allContracts = [];
@@ -1047,26 +1130,6 @@ function reformDb() {
             t._id = t.inn + t.kpp;
 
             suppliers.insert(t, handleSupplier(cust, t, next));
-        }
-    }
-
-    function ext(fields, from, to) {
-        for (var key in fields) {
-            if (!fields.hasOwnProperty(key)
-                || !from.hasOwnProperty(key))
-                continue;
-
-            if (fields[key] instanceof Object) {
-                to[key] = {};
-                for (var subKey in fields[key]) {
-                    if (fields[key].hasOwnProperty(subKey)
-                        && from[key].hasOwnProperty(subKey))
-                        to[key][subKey] = from[key][subKey];
-                }
-            }
-            else {
-                to[key] = from[key];
-            }
         }
     }
 

@@ -7,7 +7,7 @@
 
 
 //for nodejs
-var XMLHttpRequest = XMLHttpRequest || require("XMLHttpRequest").XMLHttpRequest;
+var XMLHttpRequest = XMLHttpRequest || require("./../nodejs/node_modules/XMLHttpRequest").XMLHttpRequest;
 
 /**
  * Wrapper for Api ClearSpending.Com

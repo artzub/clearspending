@@ -61,6 +61,11 @@ body {
     color: #2d85c6;
 }
 
+.leaflet-control-actionconsole a.wait {
+    background-size:12px 12px;
+    background: url(http://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.24.0/images/spinner.gif) no-repeat 50% 50%;
+}
+
 .oi[data-glyph=media-repeat]:before { content:'\e088'; }
 
 .leaflet-control-locate {
@@ -77,5 +82,79 @@ body {
 }
 
 .leaflet-heatmap-layer {
-    opacity: 0.3;
+    opacity: 0.9;
+}
+
+#yearLabel {
+    position: absolute;
+    bottom: 110px;
+    display: block;
+    right: 45px;
+    z-index: 50;
+    color: #f9f9f9;
+}
+
+#yearLabel.parsing {
+    bottom: 0;
+    top: 14px;
+}
+
+#yearLabel strong:first-child {
+    font-size: 32px;
+}
+
+#yearLabel strong {
+    font-size: 26px;
+}
+
+#yearLabel strong:last-child {
+    font-size: 20px;
+}
+
+.leaflet-layer-categories {
+    position: absolute;
+    background: transparent;
+    border: 0;
+    overflow: hidden;
+
+    max-height: 185px;
+
+    -webkit-transition: all .2s ease-in-out .1s;
+    -moz-transition: all .2s ease-in-out .1s;
+    -o-transition: all .2s ease-in-out .1s;
+    transition: all .2s ease-in-out .1s;
+}
+
+.leaflet-layer-categories.topleft {
+    top: 5px;
+    left: 5px;
+}
+
+.leaflet-layer-categories.topright {
+    top: 0;
+    right: 0;
+}
+
+.leaflet-layer-categories.bottomright {
+    bottom: 0;
+    right: 0;
+}
+
+.leaflet-layer-categories.bottomleft {
+    bottom: 0;
+    left: 0;
+}
+
+.leaflet-layer-categories:hover {
+    max-height: 80%;
+
+    -webkit-transition: all .2s ease-in-out .1s;
+    -moz-transition: all .2s ease-in-out .1s;
+    -o-transition: all .2s ease-in-out .1s;
+    transition: all .2s ease-in-out .1s;
+}
+
+
+.gLeg {
+    cursor: pointer;
 }
