@@ -111,12 +111,15 @@ body {
     font-size: 20px;
 }
 
+.leaflet-layer-history,
 .leaflet-layer-categories {
     position: absolute;
     background: transparent;
     border: 0;
     overflow: hidden;
+}
 
+.leaflet-layer-categories {
     max-height: 185px;
 
     -webkit-transition: all .2s ease-in-out .1s;
@@ -140,9 +143,10 @@ body {
     right: 0;
 }
 
+.leaflet-layer-history.bottomleft,
 .leaflet-layer-categories.bottomleft {
-    bottom: 0;
-    left: 0;
+    bottom: 5px;
+    left: 5px;
 }
 
 .leaflet-layer-categories:hover {
@@ -157,4 +161,69 @@ body {
 
 .gLeg {
     cursor: pointer;
+}
+
+.info-fields {
+    list-style: none;
+    padding: 0;
+}
+
+.info-fields li span:last-child {
+    font-weight: bold;
+}
+
+.tooltip {
+    pointer-events: none;
+
+    background: #f9f9f9;
+    /*border: 1px solid #aaa;*/
+    position: absolute;
+    font: 12px/20px 'Helvetica Neue',Arial,Helvetica,sans-serif;
+    color: rgba(0,0,0,.75);
+    padding: 10px 10px 5px;
+    margin: 0;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
+
+.tooltip h1 {
+    font-size: 15px;
+    line-height: 20px;
+    margin: 0 0 10px;
+}
+
+.childInfo {
+    font-size: 12px;
+}
+
+.childInfo h1 {
+    font-size: 12px;
+}
+
+.leaflet-layer-history {
+    background: rgba(244, 244, 244, .2);
+}
+
+.leaflet-layer-history .area {
+    fill: steelblue;
+    stroke: #ccc;
+    clip-path: url(#clip);
+}
+
+.leaflet-layer-history .axis path,
+.leaflet-layer-history .axis line {
+    fill: none;
+    stroke: #ccc;
+    shape-rendering: crispEdges;
+}
+
+.leaflet-layer-history .axis text {
+    fill: #ccc;
+}
+
+
+.leaflet-layer-history .brush .extent {
+    stroke: #fff;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
 }

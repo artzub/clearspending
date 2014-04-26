@@ -25,7 +25,7 @@ L.BlackHoleLayer = L.Class.extend({
         this._bh = d3.blackHole(this._el);
 
         this._bh.setting.skipEmptyDate = true;
-            this._bh.setting.createNearParent = true;
+        this._bh.setting.createNearParent = true;
         this._bh.setting.zoomAndDrag = false;
         this._bh.setting.drawParent = true;
         this._bh.setting.drawParentImg = false;
@@ -33,7 +33,7 @@ L.BlackHoleLayer = L.Class.extend({
         this._bh.setting.padding = 1;
         this._bh.setting.childLife =
             this._bh.setting.parentLife = 0;
-        this._bh.setting.increaseChildWhenCreated = true;
+        //this._bh.setting.increaseChildWhenCreated = true;
         this._bh.setting.blendingLighter = false;
         this._bh.setting.drawAsPlasma = false;
         this._bh.setting.drawTrack = true;

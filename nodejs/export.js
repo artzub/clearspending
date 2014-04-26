@@ -55,10 +55,12 @@
         , result = {
             contracts : [],
             customers : [],
-            suppliers : []
+            suppliers : [],
+            budgetLevels : []
         }
         , hashSuppliers = {}
         , hashCustomers = {}
+        , hashBudgeLevels = {}
 
         ;
 
@@ -183,6 +185,11 @@
                 return;
             }
 
+            var b = contr.finances.budgetLevel || {code : "01", name : "федеральный бюджет"} ;
+            var bi = hashBudgeLevels[b.code];
+            if (typeof bi === "undefined")
+                bi = hashBudgeLevels[b.code] = result.budgetLevels.push(b);
+
             var s = hashSuppliers[item._id];
             if (typeof s === "undefined")
                 s = hashSuppliers[item._id] = result.suppliers.push(getSupplier(item)) - 1;
@@ -199,6 +206,7 @@
                 prd: contr.protocolDate,
                 p : contr.price,
                 pt : contr.product || 0,
+                b : bi,
                 c: c,
                 s: s
             });

@@ -26,6 +26,34 @@
         © 2014 <a href="http://artzub.com" target="_blank">Artem Zubkov (ArtZub)</a>, <a target="_blank" href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>.<br />
     </div>
 
+    <div id="tooltipParentTemplate" style="display: none">
+        <h1>{{name}}</h1>
+        <hr/>
+        <ul class="info-fields">
+            <li><span>Участвует как: </span> <span> {{role}}</span></li>
+            <li><span>Кол-во контрактов: </span> <span> {{count}}</span></li>
+            <li><span>Сумма (руб.): </span> <span> {{sum}}</span></li>
+            <li><span>Адресс: </span> <span> {{address}}</span></li>
+        </ul>
+    </div>
+
+    <div id="tooltipChildTemplate" style="display: none">
+        <div class="childInfo">
+            <h1>{{name}}</h1>
+            <hr/>
+            <ul class="info-fields">
+                <li><span>Покупатель: </span> <span> {{customer}}</span></li>
+                <li><span>Продавец: </span> <span> {{supplier}}</span></li>
+                <li><span>Сумма (руб.): </span> <span> {{sum}}</span></li>
+                <li><span>Кол-во: </span> <span> {{count}}</span></li>
+                <li><span>Категория: </span> <span> {{category}}</span></li>
+                <li><span>Дата протокола: </span> <span> {{pd}}</span></li>
+                <li><span>Дата заключения: </span> <span> {{sd}}</span></li>
+                <li><span>Уровень бюджета: </span> <span> {{budget}}</span></li>
+            </ul>
+        </div>
+    </div>
+
     <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v0.0.2/Leaflet.fullscreen.min.js'></script>
     <link href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v0.0.2/leaflet.fullscreen.css' rel='stylesheet' />
 
@@ -42,13 +70,16 @@
     <![endif]-->
 
     <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.24.0/L.Control.Locate.js'></script>
-    <script src="//d3js.org/d3.v3.min.js"></script>
+    <script src="//d3js.org/d3.v3.js"></script>
     <script src="http://lib.artzub.com/js/blackhole.js/js/blackhole.js"></script>
     <script src="http://lib.artzub.com/js/blackhole.js/js/blackhole.legend.js"></script>
+    <script src="http://lib.artzub.com/js/blackhole.js/js/blackhole.progressBarBasedOnBrushAndArea.js"></script>
+    <script src="//cdn.rawgit.com/artzub/d3tooltipjs/master/tooltip.js"></script>
     <script src="js/L.BlackHoleLayer.js"></script>
     <script src="js/L.Control.ActionConsole.js"></script>
     <script src="js/L.Control.ResetZoom.js"></script>
     <script src="js/L.CategoriesLayer.js"></script>
+    <script src="js/L.HistoryBarLayer.js"></script>
     <!--<script src="//rawgit.com/artzub/blackhole.js/master/js/blackhole.js"></script>-->
 
     <script>
@@ -60,437 +91,599 @@
         ga('create', 'UA-28343295-12', 'artzub.com');
         ga('send', 'pageview');
 
-        var info = d3.select('#info').html()
-            , yearLabel = d3.select("#yearLabel")
-            ;
-
-
-        var map = L.mapbox.map('map', 'artzub.hp68ld67', {
-                zoomControl : false
-            }).whenReady(handleReady)
-            , visLayer = L.blackHoleLayer()
-            ;
-
-        function fixInfo() {
-            map.infoControl._info = {};
-            map.infoControl.addInfo(info);
-        }
-
-        function handleReady() {
-
-            map.zoomControl = L.control.zoom({
-                position: 'bottomright',
-                zoomInTitle: 'Приблизить',
-                zoomOutTitle: 'Отдалить'
-            }).addTo(map);
-
-            L.control.resetZoom({
-                position: 'bottomright',
-                strings : {
-                    reset : 'Переключить вид'
-                }
-            }).addTo(map);
-
-            map.on('moveend', fixInfo)
-                .on('layeradd', fixInfo)
-                .on('layerremove', fixInfo);
-
-            map.on('layeradd', function() {
-                console.log(arguments);
-            });
-
-            //window.hashContracts = {};
-            window.hashSuppliers = {};
-            window.hashCustomers = {};
-            var data = []
-                , stepDate = 24 * 60 * 60 * 1000
-                , sizes = d3.scale.linear().range([4, 400])
-            ;
-
-
-            function Supplier(d) {
-                var that = hashSuppliers[d._id] = this;
-
-                that._id = d._id;
-                that.name = d.name;
-                that.latlng = new L.LatLng(d.latlng[0], d.latlng[1]);
-                that.address = d.address;
-
-                that.x = {
-                    valueOf: function () {
-                        var t = visLayer._map.latLngToLayerPoint(that.latlng);
-                        return t.x;
-                    }
-                };
-
-                that.y = {
-                    valueOf: function () {
-                        var t = visLayer._map.latLngToLayerPoint(that.latlng);
-                        return t.y;
-                    }
-                };
-
-                return that;
-            }
-
-            function Customer(d) {
-                var that = hashCustomers[d._id] = this;
-
-                that._id = d._id;
-                that.name = d.name;
-                that.latlng = new L.LatLng(d.latlng[0], d.latlng[1]);
-                that.address = d.address;
-
-                that.x = {
-                    valueOf: function () {
-                        var t = visLayer._map.latLngToLayerPoint(that.latlng);
-                        return t.x;
-                    }
-                };
-
-                that.y = {
-                    valueOf: function () {
-                        var t = visLayer._map.latLngToLayerPoint(that.latlng);
-                        return t.y;
-                    }
-                };
-
-                return that;
-            }
-
-            function parseData(d) {
-
-                d.contracts.forEach(function(k, index) {
-
-                    if (!d.suppliers[k.s].latlng
-                        || !d.suppliers[k.s].latlng.length
-                        || !d.customers[k.c]
-                        || !d.customers[k.c].latlng.length)
-                        return;
-
-                    var s
-                        , cs
-                        ;
-                    var signDate = +(new Date(k.sd))
-                        , protokolDate = k.prd ? +(new Date(k.prd)) : signDate - stepDate
-                        , publishDate = k.pd ? +(new Date(k.pd)) : null
-                        ;
-
-
-
-                    s = hashSuppliers[d.suppliers[k.s]._id] || new Supplier(d.suppliers[k.s]);
-                    cs = hashCustomers[d.customers[k.c]._id] || new Customer(d.customers[k.c]);
-
-                    k.price = parseFloat(k.p);
-
-                    function price() {
-                        return k.price;
-                    }
-
-                    data.push({
-                        _id: index,
-                        date: protokolDate,
-                        product : k.pt,
-                        parent : cs,
-                        type: 0,
-                        label : k.product + ' сумма ' + k.price,
-                        valueOf: price
-                    });
-
-                    data.push({
-                        _id: index,
-                        date: signDate,
-                        product : k.pt,
-                        parent : s,
-                        type: 1,
-                        label : k.pt[0].name + ' сумма ' + k.price,
-                        valueOf: price
-                    });
-
-                    publishDate && data.push({
-                        _id: index,
-                        date: publishDate,
-                        product : k.pt,
-                        parent : s,
-                        type: 2,
-                        label : k.pt[0].name + ' сумма ' + k.price,
-                        valueOf: price
-                    });
-                });
-
-                data.sort(function(a, b) {
-                    return d3.ascending(a.date, b.date);
-                });
-            }
-
-            d3.json('2013.gte500x10in6.json', function(err, rawData) {
-
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-
-                parseData(rawData);
-
-                sizes.domain(d3.extent(data));
-
-                var actions = L.control.actionConsole({
-                    keepOpen: true,
-                    position: 'topright',
-                    strings: {
-                        play: 'Запусить',
-                        stop: 'Остановить',
-                        pause: 'Приостановить',
-                        repeat: 'Начать занова'
-                    }
-                }).addTo(map);
-
-                visLayer.onHide = function () {
-                    actions.bar.hide();
-                };
-
-                visLayer.onShow = function () {
-                    actions.bar.show();
-                };
-
-                actions.buttons.pause.hide();
-                actions.buttons.stop.hide();
-
-                function stop() {
-                    actions.buttons.play.hide();
-                    actions.buttons.pause.hide();
-                    actions.buttons.stop.hide();
-                    actions.buttons.repeat.show();
-                }
-
-                var markers = new L.MarkerClusterGroup()
-                    , heat = L.heatLayer([], {
-                        max: 1,
-                        radius: 25,
-                        blur: 15,
-                        gradient: {0.4: 'rgba(0, 0, 255, 1)', 0.65: 'rgba(0, 255, 0, 1)', 1: 'rgba(255, 0, 0, 1)'},
-                        maxZoom: 18
-                    })
-                    , legend = L.categories()
-                    ;
-
-                L.control.layers({
-                    'Тёманая карта': map.tileLayer, 'Светлая карта': L.mapbox.tileLayer('artzub.i1e741if'), 'OpenStreetMap': L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                    }), 'Гуманитарная карта': L.tileLayer('http://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-                        maxZoom: 18,
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">Участники OpenStreetMap</a>. Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>'
-                    })
-                }, {
-                    'Тепловая диаграмма': heat.addTo(map),
-                    'Метоки': markers.addTo(map),
-                    'Динамическая визуализация': visLayer.addTo(map),
-                    'Легеда': legend.addTo(map)
-                }).addTo(map);
-
-                L.control.fullscreen({position: 'bottomright'}).addTo(map);
-                L.control.locate({
-                    drawCircle: false,
-                    position: 'bottomright',
-                    strings: {
-                        title: "Мое место положенние",
-                        popup: "Вы в {distance} {unit} от этой точки",
-                        outsideMapBoundsMsg: "Вы находится вне границ карте"
-                    }
-                }).addTo(map);
-
-                var parentMarker = {}
-                    , curPos = 0
-                    , dateFormat = d3.time.format("<strong>%d</strong>.<strong>%m</strong>.<strong>%Y</strong>")
-                    ;
-
-                legend.legend
-                        .on('mouseover', function(d) {
-                            visLayer._bh.selectCategory(d);
-                        })
-                        .on('mouseout', function() {
-                            visLayer._bh.selectCategory(null);
-                        });
-
-                function legendResize() {
-                    var size = visLayer._bh.size();
-                    legend.legend.size(size[0] / 3, size[1])
-                            .categories(visLayer._bh.categories());
-                }
-
-                map.on('viewreset', legendResize);
-
-                visLayer._bh
-                        .on('getGroupBy', function (d) {
-                            return d.date;
-                        })
-                        /*.on('getParent', function (d) {
-                            var cont = rawData.contracts[d._id];
-                            return d.type ? rawData.suppliers[cont.s] : rawData.customers[cont.c];
-                        })*/
-                        .on('getParentKey', function (d) {
-                            return d._id;
-                        })
-                        .on('getChildKey', function (d) {
-                            return rawData.contracts[d._id]._id;
-                        })
-                        .on('getCategory', function (d) {
-                            return d.product[0].OKDP.name;
-                        })
-                        .on('getParentLabel', function (d) {
-                            return d.name;
-                        })
-                        .on('getChildLabel', function (d) {
-                            return d.label;
-                        })
-                        .on('calcRightBound', function (l) {
-                            return l + stepDate;
-                        })
-                        .on('getVisibleByStep', function (d) {
-                            return true;
-                        })
-                        .on('getCreateNearParent', function (d) {
-                            return true; //d.parentNode.nodeValue instanceof Customer;
-                        })
-                        .on('getParentRadius', function (d) {
-                            return 1;
-                        })
-                        .on('getChildRadius', function(d) {
-                            return sizes(+d);
-                        })
-                        .on('getParentPosition', function (d) {
-                            return [d.x, d.y];
-                        })
-                        .on('getParentFixed', function (d) {
-                            return true;
-                        })
-                        .on('finished', function () {
-                            stop();
-                        })
-                        .on('stopped', function () {
-                            stop();
-                        })
-                        .on('starting', function () {
-                        })
-                        .on('started', function () {
-                            legendResize();
-
-                            yearLabel.html('');
-                            visLayer._reset();
-                            yearLabel.classed('parsing', false);
-                            waitParse.hide();
-                            actions.buttons.play.hide();
-                            actions.buttons.pause.show();
-                            actions.buttons.stop.show();
-                            actions.buttons.repeat.hide();
-                        })
-                        .on('processing', function (arr, l) {
-                            legend.legend.update();
-                            yearLabel.html(dateFormat(new Date(l)));
-                            setTimeout(setMarkers(arr), 10);
-                        })
-                        .on('parsing', function() {
-                            yearLabel.html([
-                                "<strong>",
-                                curPos++,
-                                "</strong>",
-                                " из ",
-                                data.length
-                            ].join(''));
-                        })
-                    //.on('processed', prints)
-                    //.on('mouseovernode', printm)
-                    //.on('mouseoutnode', printm)
-                    //.on('mousemove', printm)
-                        .sort(null)
+        !function() {
+            var info = d3.select('#info').html()
+                , tooltipParentTemplate = d3.select('#tooltipParentTemplate').html()
+                , tooltipChildTemplate = d3.select('#tooltipChildTemplate').html()
+                , yearLabel = d3.select("#yearLabel")
+                , df = d3.time.format('%d.%m.%Y')
+                , moneyFormat = d3.format(",.2f")
                 ;
 
-                function setMarkers(arr) {
-                    return function() {
-                        arr.forEach(function (d) {
-                            var tp = d.parentNode.nodeValue;
+            var map = L.mapbox.map('map', 'artzub.hp68ld67', {
+                    zoomControl : false
+                }).whenReady(handleReady)
+                , visLayer = L.blackHoleLayer()
+                ;
 
-                            if (!parentMarker[tp._id]) {
-                                var marker = parentMarker[tp._id] = L.marker(tp.latlng, {
-                                    icon: L.mapbox.marker.icon({'marker-symbol': 'commercial', 'marker-color': '222234'}),
-                                    title: tp.name + "\n" + tp.address
-                                });
-                                marker.bindPopup(tp.name + "\n" + tp.address);
-                                markers.addLayer(marker);
-                            }
 
-                            heat.addLatLng(tp.latlng);
-                        });
+            function fixInfo() {
+                map.infoControl._info = {};
+                map.infoControl.addInfo(info);
+            }
+
+            function handleReady() {
+
+                map.zoomControl = L.control.zoom({
+                    position: 'bottomright',
+                    zoomInTitle: 'Приблизить',
+                    zoomOutTitle: 'Отдалить'
+                }).addTo(map);
+
+                L.control.resetZoom({
+                    position: 'bottomright',
+                    strings : {
+                        reset : 'Переключить вид'
                     }
+                }).addTo(map);
+
+                map.on('moveend', fixInfo)
+                    .on('layeradd', fixInfo)
+                    .on('layerremove', fixInfo);
+
+                //window.hashContracts = {};
+                var hashSuppliers = {}
+                    , hashCustomers = {}
+                    ;
+
+                var data = []
+                    , stepDate = 24 * 60 * 60 * 1000
+                    , sizes = d3.scale.linear().range([4, 400])
+                ;
+
+                function calcSum(a, b) {
+                    return a + b;
                 }
 
-                var waitParse = actions.bar.append('a')
-                    .attr('class', 'wait')
-                    .on('click', function() {
-                        if (d3.event) {
-                            d3.event.stopPropagation();
-                            d3.event.preventDefault();
+                function calcRelation(obj) {
+                    return obj.key + ' (' + obj.value.reduce(calcSum, 0) + ')';
+                }
+
+                function printRelations(rel) {
+                    return rel && rel.entries ? rel.entries().map(calcRelation).join(', ') : "";
+                }
+
+                function applyParentTemplate(d) {
+                    return tooltipParentTemplate
+                        .replace('{{name}}', d.name)
+                        .replace('{{role}}', d instanceof Supplier ? 'Поставщик' : 'Клиент')
+                        .replace('{{address}}', d.address)
+                        .replace('{{count}}', d.contracts)
+                        .replace('{{sum}}', moneyFormat(d.sum))
+                        //.replace('{{relations}}', printRelations(d.relations))
+                    ;
+                }
+
+                function applyChildTemplate(d) {
+                    return tooltipChildTemplate
+                            .replace('{{name}}', d.product[0].name)
+                            .replace('{{customer}}', hashCustomers[d.cs].name)
+                            .replace('{{supplier}}', hashSuppliers[d.s].name)
+                            .replace('{{sum}}', moneyFormat(+d))
+                            .replace('{{count}}',
+                                d.product[0].quantity
+                                ? (d.product[0].quantity + ' ' + (d.product[0].OKEI ? ' (' + d.product[0].OKEI.name + ')' : ''))
+                                : 1
+                            )
+                            .replace('{{category}}', d.product[0].OKDP.name)
+                            .replace('{{pd}}', df(d.pd))
+                            .replace('{{sd}}', df(d.sd))
+                            .replace('{{budget}}', d.b.name)
+                            ;
+                }
+
+                function makeParent(that, d) {
+                    that._id = d._id;
+                    that.name = d.name;
+                    that.latlng = new L.LatLng(d.latlng[0], d.latlng[1]);
+                    that.address = d.address;
+
+                    that.sum = 0;
+                    that.contracts = 0;
+                    that.relations = d3.map({});
+
+                    that.x = {
+                        valueOf: function () {
+                            var t = visLayer._map.latLngToLayerPoint(that.latlng);
+                            return t.x;
+                        }
+                    };
+
+                    that.y = {
+                        valueOf: function () {
+                            var t = visLayer._map.latLngToLayerPoint(that.latlng);
+                            return t.y;
+                        }
+                    };
+
+                    return that;
+                }
+
+
+                function Supplier(d) {
+                    var that = hashSuppliers[d._id] = this;
+
+                    return makeParent(that, d);
+                }
+
+                function Customer(d) {
+                    var that = hashCustomers[d._id] = this;
+
+                    return makeParent(that, d);
+                }
+
+                function parseData(d) {
+
+                    d.contracts.forEach(function(k, index) {
+
+                        if (!d.suppliers[k.s].latlng
+                            || !d.suppliers[k.s].latlng.length
+                            || !d.customers[k.c]
+                            || !d.customers[k.c].latlng.length)
+                            return;
+
+                        var s
+                            , cs
+                            , b
+                            , signDate = +(new Date(k.sd))
+                            , protocolDate = k.prd ? +(new Date(k.prd)) : signDate - stepDate
+                            ;
+
+                        s = hashSuppliers[d.suppliers[k.s]._id] || new Supplier(d.suppliers[k.s]);
+                        cs = hashCustomers[d.customers[k.c]._id] || new Customer(d.customers[k.c]);
+                        b = d.budgetLevels[k.b];
+
+                        k.price = parseFloat(k.p);
+
+                        function price() {
+                            return k.price;
+                        }
+
+                        cs.sum += k.price;
+                        cs.contracts++;
+
+                        s.sum += k.price;
+                        s.contracts++;
+
+                        data.push({
+                            _id: index,
+                            date: protocolDate,
+                            product : k.pt,
+                            parent : cs,
+                            s : s._id,
+                            cs : cs._id,
+                            pd : new Date(protocolDate),
+                            sd : new Date(signDate),
+                            b : b,
+                            type: 0,
+                            label : k.pt[0].name + ' сумма ' + k.price,
+                            valueOf: price
+                        });
+
+                        data.push({
+                            _id: index,
+                            date: signDate,
+                            product : k.pt,
+                            parent : s,
+                            s : s._id,
+                            cs : cs._id,
+                            pd : new Date(protocolDate),
+                            sd : new Date(signDate),
+                            b : b,
+                            type: 1,
+                            label : k.pt[0].name + ' сумма ' + k.price,
+                            valueOf: price
+                        });
+                    });
+
+                    data.sort(function(a, b) {
+                        return d3.ascending(a.date, b.date);
+                    });
+                }
+
+                d3.json('2013.gte500x10in6.json', function(err, rawData) {
+
+                    if (err) {
+                        console.error(err);
+                        return;
+                    }
+
+                    parseData(rawData);
+
+                    sizes.domain(d3.extent(data));
+
+                    var actions = L.control.actionConsole({
+                        keepOpen: true,
+                        position: 'topright',
+                        strings: {
+                            play: 'Запусить',
+                            stop: 'Остановить',
+                            pause: 'Приостановить',
+                            repeat: 'Начать занова'
+                        }
+                    }).addTo(map);
+
+                    visLayer.onHide = function () {
+                        actions.bar.hide();
+                    };
+
+                    visLayer.onShow = function () {
+                        actions.bar.show();
+                    };
+
+                    actions.buttons.pause.hide();
+                    actions.buttons.stop.hide();
+
+                    function stop() {
+                        actions.buttons.play.hide();
+                        actions.buttons.pause.hide();
+                        actions.buttons.stop.hide();
+                        actions.buttons.repeat.show();
+                    }
+
+                    var markers = new L.MarkerClusterGroup({
+                            maxZoom: 19
+                        })
+                        , heat = L.heatLayer([], {
+                            max: 1,
+                            radius: 25,
+                            blur: 15,
+                            gradient: {0.4: 'rgba(0, 0, 255, 1)', 0.65: 'rgba(0, 255, 0, 1)', 1: 'rgba(255, 0, 0, 1)'},
+                            maxZoom: 19
+                        })
+                        , legend = L.categories()
+                        , hbar = L.historybar({position : 'bottomleft'})
+                        ;
+
+                    var tooltip = d3.helper.tooltip()
+                        .padding(16)
+                        .text(function(d) {
+                            var result = "";
+                            if (d.type) {
+                                result = applyChildTemplate(d.nodeValue);
+                            }
+                            else {
+                                result = applyParentTemplate(d.nodeValue);
+                            }
+                            return result;
+                        });
+
+
+                    var panes = d3.select(map.getPanes().overlayPane);
+
+                    map.on('layeradd', function(e) {
+                        d3.selectAll(panes.node().children).datum(function() {
+                            var t = d3.select(this);
+                            return t.classed('leaflet-heatmap-layer')
+                                ? 0
+                                : t.classed('leaflet-blackhole-layer')
+                                ? 2
+                                : 1
+                            ;
+                        }).sort();
+                    });
+
+                    L.control.layers({
+                        'Тёманая карта': map.tileLayer, 'Светлая карта': L.mapbox.tileLayer('artzub.i1e741if'), 'OpenStreetMap': L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                        }), 'Гуманитарная карта': L.tileLayer('http://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">Участники OpenStreetMap</a>. Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>'
+                        })
+                    }, {
+                        'Тепловая диаграмма': heat.addTo(map),
+                        'Метки': markers.addTo(map),
+                        'Динамическая визуализация': visLayer.addTo(map),
+                        'Легеда': legend.addTo(map),
+                        'Прогресс бар' : hbar.addTo(map)
+                    }).addTo(map);
+
+                    L.control.fullscreen({position: 'bottomright'}).addTo(map);
+                    L.control.locate({
+                        drawCircle: false,
+                        position: 'bottomright',
+                        strings: {
+                            title: "Мое место положенние",
+                            popup: "Вы в {distance} {unit} от этой точки",
+                            outsideMapBoundsMsg: "Вы находится вне границ карте"
+                        }
+                    }).addTo(map);
+
+                    var hashDate = d3.set(data.map(function(d) { return d.date; })).values()
+                        , leftHashBound = 0
+                        , parentMarker = {}
+                        , curPos = 0
+                        , dateFormat = d3.time.format("<strong>%d</strong>.<strong>%m</strong>.<strong>%Y</strong>")
+                        ;
+
+                    hbar.bar.hide();
+                    hbar.hbar.size(map._size.x - 50, 88)
+                            .on('getAxisXValue', function(d) {
+                                return new Date(+d.key);
+                            })
+                            .on('getAxisYValue', function(d) {
+                                return +d.values;
+                            })
+                            .data(d3.nest()
+                                    .key(function(d) {
+                                        return d.date
+                                    })
+                                    .rollup(function(leaves) {
+                                        return d3.sum(leaves, function(d) { return +d; });
+                                    })
+                                    .entries(data.slice(2)))
+                            .inc(new Date(+hashDate[0]), new Date(+hashDate[0] + stepDate));
+
+                    legend.legend
+                            .on('mouseover', function(d) {
+                                visLayer._bh.selectCategory(d);
+                                legend.legend.update();
+                            })
+                            .on('mouseout', function() {
+                                visLayer._bh.selectCategory(null);
+                                legend.legend.update();
+                            });
+
+                    function legendResize() {
+                        var size = visLayer._bh.size();
+
+                        tooltip.spaceWidth(size[0])
+                            .spaceHeight(size[1]);
+
+                        hbar.hbar.size(size[0] - 50, 88);
+
+                        legend.legend.size(250, size[1])
+                                .categories(visLayer._bh.categories());
+                    }
+
+                    map.on('viewreset', legendResize);
+
+                    visLayer._bh
+                            .on('getGroupBy', function (d) {
+                                return d.date;
+                            })
+                            /*.on('getParent', function (d) {
+                                var cont = rawData.contracts[d._id];
+                                return d.type ? rawData.suppliers[cont.s] : rawData.customers[cont.c];
+                            })*/
+                            .on('getParentKey', function (d) {
+                                return d._id;
+                            })
+                            .on('getChildKey', function (d) {
+                                return rawData.contracts[d._id]._id;
+                            })
+                            .on('getCategory', function (d) {
+                                return d.product[0].OKDP.name;
+                            })
+                            .on('getParentLabel', function (d) {
+                                return d.name;
+                            })
+                            .on('getChildLabel', function (d) {
+                                return d.label;
+                            })
+                            .on('calcRightBound', function (l) {
+                                l = +l;
+
+                                var nl = l + stepDate;
+
+                                if (visLayer._bh.setting.skipEmptyDate) {
+
+                                    var ln = hashDate.length
+                                        , cur
+                                        ;
+                                    for(var i = leftHashBound; i < ln; i++) {
+                                        cur = +hashDate[i];
+                                        if (nl < cur) {
+                                            nl = (cur + nl) / 2;
+                                            leftHashBound = i;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                return nl;
+                            })
+                            .on('getVisibleByStep', function (d) {
+                                return true;
+                            })
+                            .on('getCreateNearParent', function (d) {
+                                return true; //d.parentNode.nodeValue instanceof Customer;
+                            })
+                            .on('getParentRadius', function (d) {
+                                return 1;
+                            })
+                            .on('getChildRadius', function(d) {
+                                return sizes(+d);
+                            })
+                            .on('getValue', function(d) {
+                                return +d;
+                            })
+                            .on('getParentPosition', function (d) {
+                                return [d.x, d.y];
+                            })
+                            .on('getParentFixed', function (d) {
+                                return true;
+                            })
+                            .on('finished', function () {
+                                stop();
+                            })
+                            .on('stopped', function () {
+                                stop();
+                            })
+                            .on('starting', function () {
+                            })
+                            .on('started', function () {
+                                legendResize();
+
+                                hbar.bar.show();
+                                yearLabel.html('');
+                                visLayer._reset();
+                                yearLabel.classed('parsing', false);
+                                waitParse.hide();
+                                actions.buttons.play.hide();
+                                actions.buttons.pause.show();
+                                actions.buttons.stop.show();
+                                actions.buttons.repeat.hide();
+                            })
+                            .on('processing', function (arr, l, r) {
+                                legend.legend.update();
+                                hbar.hbar.inc(new Date(+l), new Date(+l + stepDate));
+                                yearLabel.html(dateFormat(new Date(l)));
+                                setTimeout(setMarkers(arr), 10);
+                            })
+                            .on('parsing', function() {
+                                yearLabel.html([
+                                    "Анализ... <strong>",
+                                    curPos++,
+                                    "</strong>",
+                                    " из ",
+                                    data.length
+                                ].join(''));
+                            })
+                            //.on('processed', prints)
+                            .on('mouseovernode', function(d) {
+                                if (d.type) {
+                                    legend.legend
+                                            .selectCategory(d.category)
+                                            .update()
+                                    ;
+                                    tooltip.mouseover(d);
+                                }
+                            })
+                            .on('mouseoutnode', function() {
+                                legend.legend
+                                    .selectCategory(null)
+                                    .update()
+                                ;
+                                tooltip.mouseout(null);
+                            })
+                            .on('mousemove', function(d) {
+                                tooltip.mousemove(d);
+                            })
+                            .sort(null)
+                    ;
+
+                    function setMarkers(arr) {
+                        return function() {
+                            arr.forEach(function (d) {
+                                var tp = d.parentNode.nodeValue;
+
+                                if (!parentMarker[tp._id]) {
+                                    var marker = parentMarker[tp._id] = L.marker(tp.latlng, {
+                                        icon: L.mapbox.marker.icon({
+                                            'marker-symbol': tp instanceof Supplier ? 'commercial' : 'warehouse' ,
+                                            'marker-color': '222234'
+                                        })
+                                        //, title: tp.name + "\n" + tp.address
+                                    });
+
+                                    marker.__parentNode = d.parentNode;
+                                    marker.on('mouseover', onMouseOverToMarker)
+                                        .on('mousemove', onMouseMoveOnMarker)
+                                        .on('mouseout', onMouseOutFromMarker)
+                                        .bindPopup(applyParentTemplate(tp))
+                                    ;
+                                    markers.addLayer(marker);
+                                }
+
+                                heat.addLatLng(tp.latlng);
+                            });
+                        }
+                    }
+
+                    function onMouseMoveOnMarker(e) {
+                        tooltip.mousemove(this.__parentNode, 0, 0, e.originalEvent);
+                    }
+
+                    function onMouseOverToMarker(e) {
+                        tooltip.mouseover(this.__parentNode, 0, 0, e.originalEvent);
+                        visLayer._bh.selectNode(this.__parentNode);
+                    }
+
+                    function onMouseOutFromMarker(e) {
+                        tooltip.mouseout();
+                        visLayer._bh.selectNode(null);
+                    }
+
+                    var waitParse = actions.bar.append('a')
+                        .attr('class', 'wait')
+                        .on('click', function() {
+                            if (d3.event) {
+                                d3.event.stopPropagation();
+                                d3.event.preventDefault();
+                            }
+                        });
+
+                    waitParse.hide = actions.buttons.play.hide.bind(waitParse);
+                    waitParse.show = actions.buttons.play.show.bind(waitParse);
+                    waitParse.hide();
+
+                    actions.buttons.play.on('click', function () {
+                        if (visLayer._bh.IsPaused()) {
+                            actions.buttons.pause.show();
+                            actions.buttons.play.hide();
+                            visLayer._bh.resume();
+                        }
+                        else {
+                            actions.buttons.repeat.on('click')();
                         }
                     });
 
-                waitParse.hide = actions.buttons.play.hide.bind(waitParse);
-                waitParse.show = actions.buttons.play.show.bind(waitParse);
-                waitParse.hide();
-
-                actions.buttons.play.on('click', function () {
-                    if (visLayer._bh.IsPaused()) {
-                        actions.buttons.pause.show();
+                    actions.buttons.repeat.on('click', function () {
+                        curPos = 0;
+                        leftHashBound = 0;
+                        yearLabel.classed('parsing', true);
+                        waitParse.show();
+                        actions.buttons.repeat.hide();
                         actions.buttons.play.hide();
-                        visLayer._bh.resume();
-                    }
-                    else {
-                        actions.buttons.repeat.on('click')();
-                    }
-                });
+                        parentMarker = {};
+                        markers.clearLayers();
+                        heat.setLatLngs([]);
+                        visLayer.start(data);
+                    });
 
-                actions.buttons.repeat.on('click', function () {
-                    curPos = 0;
-                    yearLabel.classed('parsing', true);
-                    waitParse.show();
-                    actions.buttons.repeat.hide();
-                    actions.buttons.play.hide();
-                    parentMarker = {};
-                    markers.clearLayers();
-                    heat.setLatLngs([]);
-                    visLayer.start(data);
-                });
+                    actions.buttons.stop.on('click', function () {
+                        visLayer._bh.stop();
+                    });
 
-                actions.buttons.stop.on('click', function () {
-                    visLayer._bh.stop();
-                });
+                    actions.buttons.pause.on('click', function () {
+                        actions.buttons.pause.hide();
+                        actions.buttons.play.show();
+                        visLayer._bh.pause();
+                    });
 
-                actions.buttons.pause.on('click', function () {
-                    actions.buttons.pause.hide();
-                    actions.buttons.play.show();
-                    visLayer._bh.pause();
-                });
+                    actions.buttons.play.on('click')();
 
-                actions.buttons.play.on('click')();
+                    d3.select(window).on("focus", function() {
+                        if (window.hasOwnProperty("needPlayShow")) {
+                            if (window.needPlayShow)
+                                actions.buttons.play.on('click')();
+                            delete window.needPlayShow;
+                        }
+                    });
 
-                d3.select(window).on("focus", function() {
-                    if (window.hasOwnProperty("needPlayShow")) {
+                    d3.select(window).on("blur", function() {
+                        if (window.hasOwnProperty("needPlayShow"))
+                            return;
+
+                        window.needPlayShow = visLayer._bh.IsRun() && !visLayer._bh.IsPaused();
                         if (window.needPlayShow)
-                            actions.buttons.play.on('click')();
-                        delete window.needPlayShow;
-                    }
+                            actions.buttons.pause.on('click')();
+                    });
+
                 });
-
-                d3.select(window).on("blur", function() {
-                    if (window.hasOwnProperty("needPlayShow"))
-                        return;
-
-                    window.needPlayShow = visLayer._bh.IsRun() && !visLayer._bh.IsPaused();
-                    if (window.needPlayShow)
-                        actions.buttons.pause.on('click')();
-                });
-
-            });
-        }
+            }
+        }();
     </script>
 </body>
 </html>
