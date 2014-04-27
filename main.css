@@ -39,6 +39,7 @@ body {
 }
 
 .leaflet-control-actionconsole a,
+.leaflet-control-settings a,
 .leaflet-control-resetzoom a {
     display: inline-block;
     border-right: 1px solid rgba(0,0,0,.1);
@@ -226,4 +227,52 @@ body {
     stroke: #fff;
     fill-opacity: .125;
     shape-rendering: crispEdges;
+}
+
+.select-cat-bar {
+    padding-left: 3px;
+}
+
+.leaflet-control-settings {
+
+}
+
+.leaflet-control-settings-container {
+    display: block;
+    position: relative;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    max-width: 0;
+    max-height: 0;
+
+    overflow: hidden;
+
+    -webkit-transition: all .2s ease-in-out .1s;
+    -moz-transition: all .2s ease-in-out .1s;
+    -o-transition: all .2s ease-in-out .1s;
+    transition: all .2s ease-in-out .1s;
+}
+
+.leaflet-control-settings:hover a {
+    border: 0;
+}
+
+.leaflet-control-settings:hover .leaflet-control-settings-container {
+
+    padding: 5px;
+
+    max-width: 500px;
+    max-height: 500px;
+
+    -webkit-transition: all .2s ease-in-out .1s;
+    -moz-transition: all .2s ease-in-out .1s;
+    -o-transition: all .2s ease-in-out .1s;
+    transition: all .2s ease-in-out .1s;
+}
+
+.leaflet-control-settings-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }

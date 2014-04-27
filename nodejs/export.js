@@ -188,7 +188,7 @@
             var b = contr.finances.budgetLevel || {code : "01", name : "федеральный бюджет"} ;
             var bi = hashBudgeLevels[b.code];
             if (typeof bi === "undefined")
-                bi = hashBudgeLevels[b.code] = result.budgetLevels.push(b);
+                bi = hashBudgeLevels[b.code] = result.budgetLevels.push(b) - 1;
 
             var s = hashSuppliers[item._id];
             if (typeof s === "undefined")

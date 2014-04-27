@@ -37,6 +37,10 @@
         </ul>
     </div>
 
+    <div id="patternSetting" style="display: none">
+        <input type="checkbox" id="{{id}}"/><label for="{{id}}">{{label}}</label>
+    </div>
+
     <div id="tooltipChildTemplate" style="display: none">
         <div class="childInfo">
             <h1>{{name}}</h1>
@@ -69,7 +73,6 @@
     <link href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.21.0/L.Control.Locate.ie.css' rel='stylesheet' />
     <![endif]-->
 
-    <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.24.0/L.Control.Locate.js'></script>
     <script src="//d3js.org/d3.v3.js"></script>
     <script src="http://lib.artzub.com/js/blackhole.js/js/blackhole.js"></script>
     <script src="http://lib.artzub.com/js/blackhole.js/js/blackhole.legend.js"></script>
@@ -78,6 +81,7 @@
     <script src="js/L.BlackHoleLayer.js"></script>
     <script src="js/L.Control.ActionConsole.js"></script>
     <script src="js/L.Control.ResetZoom.js"></script>
+    <script src="js/L.Control.Settings.js"></script>
     <script src="js/L.CategoriesLayer.js"></script>
     <script src="js/L.HistoryBarLayer.js"></script>
     <!--<script src="//rawgit.com/artzub/blackhole.js/master/js/blackhole.js"></script>-->
@@ -98,6 +102,7 @@
                 , yearLabel = d3.select("#yearLabel")
                 , df = d3.time.format('%d.%m.%Y')
                 , moneyFormat = d3.format(",.2f")
+                , patternSetting = d3.select("#patternSetting").html()
                 ;
 
             var map = L.mapbox.map('map', 'artzub.hp68ld67', {
@@ -266,7 +271,7 @@
                             sd : new Date(signDate),
                             b : b,
                             type: 0,
-                            label : k.pt[0].name + ' сумма ' + k.price,
+                            label : '[' + moneyFormat(k.price) + '] ' + k.pt[0].name.substr(0, 50),
                             valueOf: price
                         });
 
@@ -281,7 +286,7 @@
                             sd : new Date(signDate),
                             b : b,
                             type: 1,
-                            label : k.pt[0].name + ' сумма ' + k.price,
+                            label : '[' + moneyFormat(k.price) + '] ' + k.pt[0].name.substr(0, 50),
                             valueOf: price
                         });
                     });
@@ -398,13 +403,18 @@
                             outsideMapBoundsMsg: "Вы находится вне границ карте"
                         }
                     }).addTo(map);
+                    var settings = L.control.settings({position: "topright"}).addTo(map);
 
                     var hashDate = d3.set(data.map(function(d) { return d.date; })).values()
                         , leftHashBound = 0
                         , parentMarker = {}
                         , curPos = 0
+                        , categoryType = 0
                         , dateFormat = d3.time.format("<strong>%d</strong>.<strong>%m</strong>.<strong>%Y</strong>")
                         ;
+
+                    visLayer._bh.setting.showTooltipOnContract = true;
+                    visLayer._bh.setting.showTooltipOnClient = true;
 
                     hbar.bar.hide();
                     hbar.hbar.size(map._size.x - 50, 88)
@@ -448,6 +458,90 @@
 
                     map.on('viewreset', legendResize);
 
+
+                    !function(){
+                        function chChange(d) {
+                            if (d.prop === 'childKill') {
+                                d.ns.childLife = this.checked ? 255 : 0;
+                            }
+                            else
+                                d.ns[d.prop] = this.checked;
+                        }
+
+                        function initCheck(d) {
+                            if (d.prop === 'childKill') {
+                                this.checked = d.ns.childLife != 0;
+                            }
+                            else
+                                this.checked = d.ns[d.prop];
+                            return null;
+                        }
+
+                        settings.settingContainer
+                                .append('ul')
+                                .selectAll('li')
+                                .data([
+                                    {
+                                        label : 'Частицы как плазма',
+                                        prop : 'drawAsPlasma',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Свечение',
+                                        prop : 'blendingLighter',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Рисовать подписи частиц',
+                                        prop : 'drawChildLabel',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Рисовать частицы',
+                                        prop : 'drawChild',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Показать все связи',
+                                        prop : 'drawEdge',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Рисовать траекторию',
+                                        prop : 'drawTrack',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Удалять старые частицы',
+                                        prop : 'childKill',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Показывать подсказки на контрактах',
+                                        prop : 'showTooltipOnContract',
+                                        ns : visLayer._bh.setting
+                                    },
+                                    {
+                                        label : 'Показывать подсказки на клинтах/поставщиках',
+                                        prop : 'showTooltipOnClient',
+                                        ns : visLayer._bh.setting
+                                    }
+                                ])
+                                .enter()
+                                .append('li')
+                                .html(function (d) {
+                                    return patternSetting
+                                        .replace('{{label}}', d.label)
+                                        .replace(/\{\{id\}\}/g, d.prop + "_ch");
+                                })
+                                .selectAll('input')
+                                .datum(function() { return this.parentNode.__data__; })
+                                .attr("checked", initCheck)
+                                .on('change', chChange)
+                        ;
+                    }();
+
+
                     visLayer._bh
                             .on('getGroupBy', function (d) {
                                 return d.date;
@@ -462,14 +556,17 @@
                             .on('getChildKey', function (d) {
                                 return rawData.contracts[d._id]._id;
                             })
-                            .on('getCategory', function (d) {
-                                return d.product[0].OKDP.name;
+                            .on('getCategoryKey', function (d) {
+                                return getCatKey(d);
+                            })
+                            .on('getCategoryName', function (d) {
+                                return getCatName(d);
                             })
                             .on('getParentLabel', function (d) {
                                 return d.name;
                             })
                             .on('getChildLabel', function (d) {
-                                return d.label;
+                                return d.nodeValue.label;
                             })
                             .on('calcRightBound', function (l) {
                                 l = +l;
@@ -525,6 +622,7 @@
                             .on('started', function () {
                                 legendResize();
 
+                                legend.bar.show();
                                 hbar.bar.show();
                                 yearLabel.html('');
                                 visLayer._reset();
@@ -557,7 +655,8 @@
                                             .selectCategory(d.category)
                                             .update()
                                     ;
-                                    tooltip.mouseover(d);
+                                    visLayer._bh.setting.showTooltipOnContract
+                                        && tooltip.mouseover(d);
                                 }
                             })
                             .on('mouseoutnode', function() {
@@ -606,7 +705,8 @@
                     }
 
                     function onMouseOverToMarker(e) {
-                        tooltip.mouseover(this.__parentNode, 0, 0, e.originalEvent);
+                        visLayer._bh.setting.showTooltipOnClient
+                            && tooltip.mouseover(this.__parentNode, 0, 0, e.originalEvent);
                         visLayer._bh.selectNode(this.__parentNode);
                     }
 
@@ -644,6 +744,7 @@
                         leftHashBound = 0;
                         yearLabel.classed('parsing', true);
                         waitParse.show();
+                        legend.bar.hide();
                         actions.buttons.repeat.hide();
                         actions.buttons.play.hide();
                         parentMarker = {};
@@ -681,6 +782,109 @@
                             actions.buttons.pause.on('click')();
                     });
 
+                    legend.bar.insert('br', ':first-child');
+                    legend.bar.insert('div', ':first-child')
+                            .attr('class', 'leaflet-bar leaflet-control select-cat-bar')
+                            .each(function(div) {
+                                div = d3.select(this).append('div')
+                                    .attr('class', 'leaflet-bar-part leaflet-bar-part-single')
+                                    ;
+                                div.append('label')
+                                    .text('Окраска частиц на основе: ')
+                                    .attr('for', 'select_cat')
+                                ;
+                                var sel = div.append('select')
+                                    .attr('id', 'select_cat');
+                                sel.selectAll('option')
+                                    .data([0, 1])
+                                    .enter()
+                                    .append('option')
+                                    .attr('value', function(d) { return d; })
+                                    .text(function(d) { return d ? 'Уровня бюджета' : 'Типа услуги';})
+                                    .attr('selected', function(d) { return !d ? "selected" : null; })
+                                ;
+                                sel.on('change', function() {
+                                    categoryType = this.options[this.selectedIndex].__data__;
+                                    changeCategories();
+                                });
+                            })
+                    ;
+
+                    function getCatName(d) {
+                        return (categoryType ? d.b : d.product[0].OKDP).name;
+                    }
+
+                    function getCatKey(d) {
+                        return (categoryType ? d.b : d.product[0].OKDP).code;
+                    }
+
+
+                    function changeCategories() {
+                        var categories = d3.map({})
+                            , catMax = 0
+                            ;
+
+                        visLayer._bh.setting.categoryColors = categoryType ? d3.scale.category20c() : d3.scale.category20();
+
+                        function Category(c, name) {
+                            var cat = categories.get(c);
+                            if (!cat) {
+                                cat = {
+                                    key: c,
+                                    name : name || c,
+                                    all: 0,
+                                    currents: {},
+                                    values: {},
+                                    color: d3.rgb(visLayer._bh.setting.categoryColors(c)),
+                                    now: []
+                                };
+                                categories.set(c, cat);
+                            }
+                            return cat;
+                        }
+
+                        visLayer._bh.selectCategory(null);
+                        legend.legend.selectCategory(null);
+
+                        var run = visLayer._bh.IsRun() && !visLayer._bh.IsPaused();
+                        if (run)
+                            visLayer._bh.pause();
+
+                        visLayer._bh.children().values().forEach(function(d) {
+                            var n = d
+                                , org = d.nodeValue
+                                , j
+                                ;
+
+                            n.category = Category(getCatKey(org), getCatName(org));
+
+                            n.color = n.category.color.toString();
+                            n.d3color = d3.rgb(n.color);
+                            n.flashColor =  d3.rgb(n.d3color.brighter().brighter());
+
+                            n.category.all++;
+
+                            n.category.currents[d.date] = (n.category.currents[org.date] || 0);
+                            n.category.currents[d.date]++;
+                            n.category.values['_' + n.id] = +org;
+
+                            j = categories.values().reduce((function(id) { return function(a, b) {
+                                return (a || 0) + (b.currents[id] || 0);
+                            }})(org.date), null);
+                            catMax = j > catMax ? j : catMax;
+
+                            if (org.date < +hashDate[leftHashBound])
+                                n.category.now.indexOf(org._id) < 0
+                                    && n.category.now.push(org._id);
+                        });
+
+                        visLayer._bh.categories(categories);
+                        visLayer._bh.categoryMax(catMax);
+                        legend.legend.categories(categories);
+
+                        if(run)
+                            visLayer._bh.resume();
+                    }
                 });
             }
         }();
