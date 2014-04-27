@@ -18,7 +18,49 @@
     <div id="info" style="display:none">
         <div>
             Визуализация распределения бюджетных средств на основе данных с <a href="//clearspending.ru" target="_blank">ГосЗатраты</a>.<br />
+            В выборке участвуют только контракты за <strong>2013</strong> год с суммой равной или большей <strong>500 000 000</strong> рублей,<br />
+            а также только те у контрагентов которых удалось определеить геопозицию.<br />
+            <br />
+            Некторые замечания:
+            <ul>
+                <li>Размер частиц зависит от суммы контракта.</li>
+                <li>Цвет частицы определяется на снове или типа услуги или уровня бюджета.</li>
+                <li>Частица появляется у покуптеля (она собственно символизирует денежную массу) в момент соответсвующий дате протокола.<br />
+                    Затем она перемещается к поставщику (символизируется оплата услуги или выделение средств)<br />
+                    точко для данного события выбрана дата подписания контракта.
+                </li>
+                <li>При на ведении на метку Поставщика/Покупателя отображаются его связи с контрактами.</li>
+                <li>Слой меток как и другие слои можно отлючить с соответсвющем меню справа.<br />
+                    Метки группируются. При клики по кругу с числом которое отображает кол-во сгруппированных меток<br />
+                    Произойдет зуминт к локации которая описана этими метками.<br />
+                    Так же можно воспользовать определением вашего местоположения и сфокусироваться на ваше городе к примеру.
+                </li>
+                <li>Слой тепловой диаграммы демонстрирует концентрацию объектов участвующийх в сделках.<br />
+                    Чем больше объектов в обдной областе тем сначала синее, затем зеленее, а потом вообще красной становиться окраска зоны.<br />
+                    В расчете участвуют только те метки (а именно упоминате геопозиции объекта) которые отображатются в сфокусированной области.<br />
+                    Поэтому при фокусе на конретном объекте зона под ним имеет красный окрас.
+                </li>
+                <li>
+                    В диаграмме категорий слева вверху, отображатется в порядке убывания категории по выбраному признаку. Кол-во в квадратике,<br />
+                    показывает кол-во контрактов на дату на которой сфокусирован ползунок внижней части экрана.<br />
+                </li>
+                <li>
+                    Нижний график показывает распределение суммы кантрактов в день.<br />
+                    Бегунок показывает какая дата в текущий момент обрабатывается.<br />
+                    Одно перемещение = 1 секунде = 1 дню.
+                </li>
+            </ul>
+            <br />
             Данные по координатам объектов взяты с <a href="//maps.yandex.ru" target="_blank">Яндекс.Карты</a>
+            <hr/>
+            Для работы с API ГосЗатран написана <a href="https://github.com/artzub/clearspending/blob/master/js/clearspending.js">библиоктека</a> на js которую можно использовать как на сторане клиента,
+            так и настроне сервера в программах для <a href="http://nodejs.org">nodejs</a>.<br />
+            <br />
+            Полный исходный код проекта, в том числе скрипты для nodejs<br />
+            для выборки и обработки данных и для поиска координат объектов<br />
+            размещенны в открытом доступе в мое репозитории <a href="https://github.com/artzub/clearspending">ClearSpending на GitHub</a>.<br />
+            <br />
+            По всем вопросам или замечаниям в работе ресурса <a href="https://github.com/artzub/clearspending/issues/new">пишити здесь</a>.
         </div>
         <hr>
         Powered by <a href="http://d3js.org" target="_blank">D3js</a>, <a href="http://mapbox.com" target="_blank">MapBox</a>, <a href="http://github.com/artzub/blackhole.js" target="_blank">BlackHole.js</a><br/>
@@ -442,6 +484,7 @@
 
                     visLayer._bh.setting.showTooltipOnContract = true;
                     visLayer._bh.setting.showTooltipOnClient = true;
+                    visLayer._bh.setting.showTooltipOnLegend = true;
 
                     hbar.bar.hide();
                     hbar.hbar.size(map._size.x - 50, 88)
@@ -464,7 +507,8 @@
                     legend.legend
                             .on('mousemove', tooltip.mousemove)
                             .on('mouseover', function(d) {
-                                tooltip.mouseover(d);
+                                visLayer._bh.setting.showTooltipOnLegend
+                                    && tooltip.mouseover(d);
                                 visLayer._bh.selectCategory(d);
                                 legend.legend.update();
                             })
@@ -486,7 +530,8 @@
                                 .categories(visLayer._bh.categories());
                     }
 
-                    map.on('viewreset', legendResize);
+                    map.on('resize', legendResize)
+                       .on('viewreset', legendResize);
 
 
                     !function(){
@@ -555,7 +600,12 @@
                                         label : 'Показывать подсказки на клинтах/поставщиках',
                                         prop : 'showTooltipOnClient',
                                         ns : visLayer._bh.setting
-                                    }
+                                    },
+                                    {
+                                        label : 'Показывать подсказки на елементе легенды',
+                                        prop : 'showTooltipOnLegend',
+                                        ns : visLayer._bh.setting
+                                    },
                                 ])
                                 .enter()
                                 .append('li')
@@ -696,9 +746,7 @@
                                 ;
                                 tooltip.mouseout(null);
                             })
-                            .on('mousemove', function(d) {
-                                tooltip.mousemove(d);
-                            })
+                            .on('mousemove', tooltip.mousemove)
                             .sort(null)
                     ;
 
