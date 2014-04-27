@@ -58,6 +58,17 @@
         </div>
     </div>
 
+    <div id="tooltipCategoryTemplate" style="display: none">
+        <div class="childInfo">
+            <h1>{{name}}</h1>
+            <hr/>
+            <ul class="info-fields">
+                <li><span>Сумма (руб.): </span> <span> {{sum}}</span></li>
+                <li><span>Кол-во: </span> <span> {{count}}</span></li>
+            </ul>
+        </div>
+    </div>
+
     <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v0.0.2/Leaflet.fullscreen.min.js'></script>
     <link href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v0.0.2/leaflet.fullscreen.css' rel='stylesheet' />
 
@@ -99,6 +110,7 @@
             var info = d3.select('#info').html()
                 , tooltipParentTemplate = d3.select('#tooltipParentTemplate').html()
                 , tooltipChildTemplate = d3.select('#tooltipChildTemplate').html()
+                , tooltipCategoryTemplate = d3.select('#tooltipCategoryTemplate').html()
                 , yearLabel = d3.select("#yearLabel")
                 , df = d3.time.format('%d.%m.%Y')
                 , moneyFormat = d3.format(",.2f")
@@ -184,6 +196,18 @@
                             .replace('{{pd}}', df(d.pd))
                             .replace('{{sd}}', df(d.sd))
                             .replace('{{budget}}', d.b.name)
+                            ;
+                }
+
+                function applyCategoryTemplate(d) {
+
+                    var values = d3.map(d.values).values();
+
+                    return tooltipCategoryTemplate
+                            .replace('{{name}}', d.name)
+                            .replace('{{sum}}',
+                                moneyFormat(d3.sum(values)))
+                            .replace('{{count}}', values.length)
                             ;
                 }
 
@@ -357,8 +381,11 @@
                             if (d.type) {
                                 result = applyChildTemplate(d.nodeValue);
                             }
-                            else {
+                            else if(d.type === 0) {
                                 result = applyParentTemplate(d.nodeValue);
+                            }
+                            else {
+                                result = applyCategoryTemplate(d);
                             }
                             return result;
                         });
@@ -435,17 +462,20 @@
                             .inc(new Date(+hashDate[0]), new Date(+hashDate[0] + stepDate));
 
                     legend.legend
+                            .on('mousemove', tooltip.mousemove)
                             .on('mouseover', function(d) {
+                                tooltip.mouseover(d);
                                 visLayer._bh.selectCategory(d);
                                 legend.legend.update();
                             })
                             .on('mouseout', function() {
+                                tooltip.mouseout();
                                 visLayer._bh.selectCategory(null);
                                 legend.legend.update();
                             });
 
                     function legendResize() {
-                        var size = visLayer._bh.size();
+                        var size = [map._size.x, map._size.y];
 
                         tooltip.spaceWidth(size[0])
                             .spaceHeight(size[1]);
