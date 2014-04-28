@@ -88,7 +88,7 @@
 
         var query = {
             //signDate : /2013-01-.*/, price : {$gte : 1000000}
-            signDate : /2013.*/, price : {$gte : 500000000}
+            signDate : /2013.*/, price : {$gte : 100000000}
         };
 
         contracts.count(query, function(err, count) {

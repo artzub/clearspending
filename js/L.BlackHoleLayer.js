@@ -80,7 +80,15 @@ L.BlackHoleLayer = L.Class.extend({
 
         var arr = [-topLeft.x, -topLeft.y];
 
-        this._bh.style('transform', 'translate3d(' + topLeft.x + 'px, ' + topLeft.y + 'px, 0px)');
+        var t3d = 'translate3d(' + topLeft.x + 'px, ' + topLeft.y + 'px, 0px)';
+
+        this._bh.style({
+            "-webkit-transform" : t3d,
+            "-moz-transform" : t3d,
+            "-ms-transform" : t3d,
+            "-o-transform" : t3d,
+            "transform" : t3d
+        });
         this._bh.translate(arr);
     },
 

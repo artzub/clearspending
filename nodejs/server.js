@@ -49,7 +49,7 @@ function getAdvDataByContract() {
         if(opened) {
             opened = false;
             console.log('disconnecting...!');
-            mongoose.connection.close(connect);
+            mongoose.connection.close(function() {});
             return;
         }
 
@@ -94,11 +94,13 @@ function getAdvDataByContract() {
     function processDb() {
         collection = db.db.collection('contract');
 
-        collection.count({fixed : null}, function(err, count) {
+        var query = {signDate : /2013.*/, price : {$gte : 100000000}, $or : [{finances : null}, {"finances.budgetLevel" : null}]};
+
+        collection.count(query, function(err, count) {
             if (err)
                 throw err;
             all = count;
-            cursor = collection.find({fixed : null});
+            cursor = collection.find(query);
             log(fixed, 'start');
             run();
         });
@@ -119,17 +121,16 @@ function getAdvDataByContract() {
             return;
         }
 
-        if (!item) {
+        if (!item || fixed >= all || !opened) {
             return;
         }
 
-        if (item.fixed) {
+        /*if (item.fixed) {
             log(fixed++, item._id, 'skip');
             run();
         }
-        else {
+        else */
             runRequest(item);
-        }
     }
 
     function runRequest(item) {
@@ -318,6 +319,9 @@ function getAdvDataByCustomers() {
     }
 
     function run() {
+        if (fixed >= all)
+            return;
+
         var l = 3;
         while(l--)
             setTimeout(function() {

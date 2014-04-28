@@ -165,6 +165,18 @@
                 , visLayer = L.blackHoleLayer()
                 ;
 
+            var file = '2013.gte500x10in6.json';
+            !function() {
+                var params = {};
+                location.search.replace('?', '')
+                    .split('&').forEach(function(d) {
+                        var pair = d.split('=');
+                        params[pair[0]] = pair[1];
+                    })
+                ;
+                file = params['file'] || file;
+            }();
+
 
             function fixInfo() {
                 map.infoControl._info = {};
@@ -362,7 +374,7 @@
                     });
                 }
 
-                d3.json('2013.gte500x10in6.json', function(err, rawData) {
+                d3.json(file, function(err, rawData) {
 
                     if (err) {
                         console.error(err);
@@ -474,7 +486,9 @@
                     }).addTo(map);
                     var settings = L.control.settings({position: "topright"}).addTo(map);
 
-                    var hashDate = d3.set(data.map(function(d) { return d.date; })).values()
+                    var leftDate = new Date('2000-12-31')
+                        , rightDate = new Date('2006-12-31')
+                        , hashDate = d3.set(data.map(function(d) { return d.date; })).values()
                         , leftHashBound = 0
                         , parentMarker = {}
                         , curPos = 0
@@ -487,22 +501,46 @@
                     visLayer._bh.setting.showTooltipOnLegend = true;
 
                     hbar.bar.hide();
-                    hbar.hbar.size(map._size.x - 50, 88)
-                            .on('getAxisXValue', function(d) {
-                                return new Date(+d.key);
-                            })
-                            .on('getAxisYValue', function(d) {
-                                return +d.values;
-                            })
-                            .data(d3.nest()
-                                    .key(function(d) {
-                                        return d.date
-                                    })
-                                    .rollup(function(leaves) {
-                                        return d3.sum(leaves, function(d) { return +d; });
-                                    })
-                                    .entries(data.slice(2)))
-                            .inc(new Date(+hashDate[0]), new Date(+hashDate[0] + stepDate));
+                    hbar.hbar.maxLabelValue('Максимальная сумма по подписанным контрактам в день: ');
+                    hbar.hbar.maxLabelEvent('Максимьное кол-во контрактов в день: ');
+
+                    function recreate(leftDate, rigthDate) {
+
+                        var ld = leftDate ? +leftDate : 0
+                            , rd = rigthDate ? +rigthDate : Infinity
+                            ;
+
+                        hbar.hbar.size(map._size.x - 50, 88)
+                                .on('getAxisXValue', function (d) {
+                                    return new Date(+d.key);
+                                })
+                                .on('getAxisYValue', function (d) {
+                                    return +d.values.sum;
+                                })
+                                .on('getAxisYEvent', function (d) {
+                                    return +d.values.count;
+                                })
+                                .data(d3.nest()
+                                        .key(function (d) {
+                                            return d.date
+                                        })
+                                        .rollup(function (leaves) {
+                                            return {
+                                                count : leaves.filter(function(d) {
+                                                    return !!d.type;
+                                                }).length,
+                                                sum : d3.sum(leaves, function (d) {
+                                                    return d.type ? +d : 0;
+                                                })
+                                            };
+                                        })
+                                        .entries(data.filter(function (d) {
+                                            return d.date >= ld && d.date <= rd;
+                                        })))
+                                .inc(new Date(+hashDate[0]), new Date(+hashDate[0] + stepDate))
+                        ;
+                    }
+                    recreate(null, rightDate);
 
                     legend.legend
                             .on('mousemove', tooltip.mousemove)
@@ -715,7 +753,20 @@
                             })
                             .on('processing', function (arr, l, r) {
                                 legend.legend.update();
-                                hbar.hbar.inc(new Date(+l), new Date(+l + stepDate));
+
+                                var lb = new Date(+l)
+                                    ;
+
+                                if (lb.getFullYear() > rightDate.getFullYear()) {
+
+                                    leftDate = new Date(+rightDate);
+                                    rightDate.setFullYear(rightDate.getFullYear() + 1);
+
+                                    recreate(leftDate, rightDate);
+                                }
+
+                                hbar.hbar.inc(lb, new Date(+r));
+
                                 yearLabel.html(dateFormat(new Date(l)));
                                 setTimeout(setMarkers(arr), 10);
                             })
@@ -861,6 +912,10 @@
                     });
 
                     legend.bar.insert('br', ':first-child');
+
+                    /IE/.test(window.navigator.userAgent)
+                        && legend.bar.insert('br', ':first-child');
+
                     legend.bar.insert('div', ':first-child')
                             .attr('class', 'leaflet-bar leaflet-control select-cat-bar')
                             .each(function(div) {
