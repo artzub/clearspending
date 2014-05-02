@@ -4,7 +4,8 @@ body {
     background: #222234;
 }
 
-#map {
+#map,
+#map1 {
     position:absolute;
     top:0;
     bottom:0;
@@ -15,7 +16,8 @@ body {
     background: #2c2c44;
 }
 
-.leaflet-control-actionconsole {
+.leaflet-control-actionconsole,
+.leaflet-control-search {
     border: 1px solid rgba(0,0,0,0.4);
 
     max-width: 28px;
@@ -38,6 +40,22 @@ body {
     transition: max-width .2s ease-in-out .1s;
 }
 
+.leaflet-control-search input[type=text] {
+    padding: 0;
+    margin: 0;
+}
+
+.leaflet-control-search:hover,
+.leaflet-control-search.open {
+    max-width: 500px;
+
+    -webkit-transition: max-width .2s ease-in-out .1s;
+    -moz-transition: max-width .2s ease-in-out .1s;
+    -o-transition: max-width .2s ease-in-out .1s;
+    transition: max-width .2s ease-in-out .1s;
+}
+
+a.oi,
 .leaflet-control-actionconsole a,
 .leaflet-control-settings a,
 .leaflet-control-resetzoom a {
