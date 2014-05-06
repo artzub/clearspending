@@ -1,7 +1,7 @@
 /**
  * Created by artzub on 14.03.14.
  *
- * API for http://clearspending.com
+ * API for http://clearspending.ru
  * https://www.mashape.com/infoculture/clearspending-ru-as-russian-government-spending#!documentation
  */
 
@@ -10,7 +10,7 @@
 var XMLHttpRequest = XMLHttpRequest || require("./../nodejs/node_modules/XMLHttpRequest").XMLHttpRequest;
 
 /**
- * Wrapper for Api ClearSpending.Com
+ * Wrapper for Api ClearSpending.Ru
  *
  * @type {{}}
  */
