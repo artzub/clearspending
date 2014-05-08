@@ -4,6 +4,7 @@
 
 var request = require('request')
     , fs = require('fs')
+    , sys = require('sys')
     , l = ['a', 'b', 'c', 'd']
     , pattern = 'http://{s}.tiles.mapbox.com/v3/artzub.hp68ld67/{z}/{x}/{y}.png'
     , filePattern = 'E:/temp/tiles/{z}/{x}/{y}.png'
@@ -17,6 +18,7 @@ var request = require('request')
     , y = 0
     , curTiles
     , li = 0
+    , in_open = []
     ;
 
 function calcCountTiles(zoom) {
@@ -33,6 +35,13 @@ function getFixedPattern(pattern, s, z, x, y) {
 
 function log(str) {
     str && console.log(str);
+}
+
+function closeHandle(strLog) {
+    var ind = in_open.indexOf(strLog);
+    if (ind > -1)
+        in_open.splice(ind, 1);
+    run(nextStep());
 }
 
 var hashDir = {};
@@ -64,18 +73,28 @@ function inside(obj) {
 
         if (!fs.existsSync(file) && !fs.existsSync(oldFile)) {
             log(strLog);
+
             request(url).pipe(
                 fs.createWriteStream(file)
+                    .on('open', function(fd) {
+                        in_open.push(strLog);
+                    })
+                    .on('error', function(err) {
+                        log(strLog + ': ' + sys.inspect(err));
+                        closeHandle(strLog);
+                    })
+                    .on('close', function() {
+                        closeHandle(strLog);
+                    })
             );
-            //run(nextStep());
+            if (in_open.length < 10)
+                run(nextStep());
+            return;
         }
         else {
             log(strLog + ': skip');
             if (fs.existsSync(oldFile))
                 fs.renameSync(oldFile, file);
-//            obj = nextStep();
-//            if (!obj)
-//                break;
         }
         obj = nextStep();
         if (!obj)
@@ -113,12 +132,10 @@ function nextStep() {
 }
 
 !function() {
-    //z = 9;
-    //x = 276;
-    z = 0;
-    x = 0;
+    z = 10;
+    x = 49;
+    y = 263;
     curTiles = calcCountTiles(z);
-    y = 0;
     s = l[li];
 
     run({z : z, x : x, y : y});

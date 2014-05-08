@@ -191,7 +191,7 @@
                 console.error(err);
             }
 
-            var mainLayer = L.mapbox.tileLayer('artzub.hp68ld67')
+            var mainLayer = L.mapbox.tileLayer('./artzub.hp68ld67.json')
                     .on('ready', function() {
                         map.removeLayer(openStreetMap);
                         map.addLayer(mainLayer);
